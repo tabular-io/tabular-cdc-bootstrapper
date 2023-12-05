@@ -11,13 +11,25 @@ This service includes:
 
 
 ## Installation
-- install Serverless Framework CLI.
+- Install npm (or something else if you want to, I don't care)
 ```sh
-brew install serverless 
+brew install node
+```
+- from the bootstrapper directory (where the package.json file is), install Serverless Framework CLI and any plugins from the package.json
+```sh
+npm install
+```
+- install pipenv (if you want to execute any of the functions locally)
+```sh
+brew install pipenv
+```
+- install pipenv dependencies 
+```sh
+pipenv install
 ```
 
 ## Usage
 - [configure serverless for your AWS account.](https://www.serverless.com/framework/docs/providers/aws/guide/credentials)
 - update serverless.yml with your specific configs, including tabular credentials
-- deploy with `sls deploy`
+- deploy with `npx sls deploy`. NOTE: if you want to just run `sls deploy`, install serverless globally with npm (`npm install -g serverless`)
 - Rejoice 🌞
