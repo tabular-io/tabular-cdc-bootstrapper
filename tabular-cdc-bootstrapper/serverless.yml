@@ -2,7 +2,7 @@ org: randypitcherii
 app: tabular-cdc-bootstrapper
 service: tabular-cdc-bootstrapper
 
-frameworkVersion: '3'
+frameworkVersion: "3"
 
 custom:
   s3_bucket_name: ${env:S3_BUCKET_NAME, 'you_can_hardcode_here'}
@@ -12,9 +12,28 @@ provider:
   name: aws
   runtime: python3.9
 
+  iam:
+    role:
+      name: custom-role-name
+      path: /custom-role-path/
+      statements:
+        - Effect: Allow
+          Action:
+            - s3:GetObject
+          Resource: "arn:aws:s3:::${self:custom.s3_bucket_name}/*"
+
 functions:
-  hello:
-    handler: handler.hello
+  bootstrap:
+    handler: cdc_bootstrap_handler.handle_new_file
+    events:
+      - s3:
+          bucket: ${self:custom.s3_bucket_name}
+          event: s3:ObjectCreated:*
+          rules:
+            - prefix: ${self:custom.s3_bucket_path}
+          existing: true
+          forceDeploy: true
 
 plugins:
   - serverless-python-requirements
+  - serverless-dotenv-plugin
