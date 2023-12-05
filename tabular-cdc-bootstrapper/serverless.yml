@@ -1,0 +1,13 @@
+org: randypitcherii
+app: tabular-cdc-bootstrapper
+service: tabular-cdc-bootstrapper
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: python3.9
+
+functions:
+  hello:
+    handler: handler.hello
