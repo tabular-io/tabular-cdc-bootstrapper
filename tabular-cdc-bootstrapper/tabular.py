@@ -1,18 +1,21 @@
 from pyiceberg.catalog import load_catalog
 
-def extract_database_and_table(s3_key: str, prefix: str):
+def extract_database_and_table(s3_key: str, prefix: str = ''):
     """
     Extract the database and table name from the s3 key.
     """
+    relevant_s3_path = s3_key[len(prefix):].strip('/')
+
     try:
-        paths = s3_key.strip('/').split('/')
-        database = paths[0]
-        table = paths[1]
+        relevant_parent_folders = relevant_s3_path.split('/')[:-1] #ignore the actual file by dropping the last element (-1 index)
+        database = relevant_parent_folders[0]
+        table = relevant_parent_folders[1]
 
         return database, table
 
     except IndexError:
         raise ValueError("The s3 key must have at least 2 subdirectory levels.")
+        
 
 def bootstrap_from_file(s3_key: str, s3_prefix:str, catalog_properties):
     """
