@@ -1,4 +1,11 @@
+import logging
 from pyiceberg.catalog import load_catalog
+from pyiceberg.exceptions import NoSuchTableError
+
+# Set up logging
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
 
 def extract_database_and_table(s3_key: str, prefix: str = ''):
     """
@@ -15,25 +22,43 @@ def extract_database_and_table(s3_key: str, prefix: str = ''):
 
     except IndexError:
         raise ValueError("The s3 key must have at least 2 subdirectory levels.")
-        
 
-def bootstrap_from_file(s3_key: str, s3_prefix:str, catalog_properties):
-    """
-    Create iceberg catalog, check whether the table exists else call the method to create it.
-    """
-    # TODO: Add logic to build iceberg catalog from catalog properties
-    catalog = load_catalog('wh', catalog_properties)
-    target_db, target_table = extract_database_and_table(s3_key, s3_prefix)
 
-    table_id = iceberg.TableIdentifier.of(target_database, target_table)
+def bootstrap_from_file(s3_key: str, s3_prefix:str, catalog_properties) -> str:
+    """
+    Connects to an iceberg rest catalog with properties and bootstraps a new table if one doesn't already exist
     
-    if not catalog.tableExists(table_id):
-        # TODO: Fill in create_table_from_s3_path function first
-        iceberg_table = create_table_from_s3_path(s3_key, catalog, target_database, target_table)
-        
-        return iceberg_table
-    else:
-        raise ValueError("The table already exists.")
+    Returns:
+        bool: True when a table is created, False when it already exists. Is this a good pattern? Who can say.
+    """
+    catalog = load_catalog('wh', **catalog_properties)
+    target_db_name, target_table_name = extract_database_and_table(s3_key, s3_prefix)
+
+    # see if the table exists
+    try:
+      target_table = catalog.load_table(f'{target_db_name}.{target_table_name}')
+      logger.info(f"""Success - Existing table found in catalog...
+        s3_key: {s3_key}
+        s3_prefix: {s3_prefix}
+        target_db_name: {target_db_name}
+        target_table_name: {target_table_name}
+
+      """)
+
+      return False # if the table exists, we're done here 😎
+
+    except NoSuchTableError as nste:
+      # get to boot strappin! 💪
+      logger.info(f"""Success - No table found in catalog, yet...
+        s3_key: {s3_key}
+        s3_prefix: {s3_prefix}
+        target_db_name: {target_db_name}
+        target_table_name: {target_table_name}
+
+      """)
+
+      return True
+
 
 def create_table_from_s3_path(s3_key: str, catalog, database: str, table: str):
     """

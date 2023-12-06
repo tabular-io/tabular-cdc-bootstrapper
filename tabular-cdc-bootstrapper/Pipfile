@@ -5,8 +5,8 @@ name = "pypi"
 
 [packages]
 requests = "*"
-pyiceberg = "*"
 pytest = "*"
+pyiceberg = {extras = ["s3fs"], version = "*"}
 
 [dev-packages]
 
