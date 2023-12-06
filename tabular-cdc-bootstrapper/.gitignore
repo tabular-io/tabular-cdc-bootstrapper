@@ -18,8 +18,8 @@ var/
 
 # Serverless directories
 .serverless
-
-# node ignore
 node_modules
+.pytest_cache
 
+# shhh, secrets. Or maybe just configs, who knows 🤷
 .env
