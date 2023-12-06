@@ -1,6 +1,15 @@
 import json
 import logging
 import os
+import traceback
+
+# 💃 this extra spice is required to unzip lambda dependencies. 
+# This is necessary because of the zip:true config in our serverless.yml 💃
+try:
+  import unzip_requirements
+except ImportError:
+  pass
+
 
 import tabular
 
@@ -22,6 +31,7 @@ logger.setLevel(logging.INFO)
 
 def handle_new_file(event, context):
   # Extract S3 details from event
+  s3_info = event['Records'][0]['s3']
   object_key = s3_info['object']['key']
 
   logger.info(f"""Processing new bootstrap event...

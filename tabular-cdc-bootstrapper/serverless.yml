@@ -8,6 +8,12 @@ custom:
   s3_bucket_name: ${env:S3_BUCKET_NAME, 'you_can_hardcode_here'}
   s3_bucket_path: ${env:S3_BUCKET_PATH, 'you_can_hardcode_here'}
 
+  pythonRequirements:
+    dockerizePip: true
+    zip: true
+    noDeploy:
+      - pytest
+
 provider:
   name: aws
   runtime: python3.9

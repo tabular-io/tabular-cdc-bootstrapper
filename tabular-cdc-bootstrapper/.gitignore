@@ -16,10 +16,11 @@ var/
 .installed.cfg
 *.egg
 
-# Serverless directories
+# build artifacts
 .serverless
 node_modules
 .pytest_cache
+.requirements.zip
 
 # shhh, secrets. Or maybe just configs, who knows 🤷
 .env
