@@ -55,7 +55,21 @@ def handle_new_file(event, context):
       'warehouse':  TABULAR_TARGET_WAREHOUSE
     }
 
-    tabular.bootstrap_from_file(object_key, S3_BUCKET_PATH, catalog_properties)
+    if tabular.bootstrap_from_file(object_key, S3_BUCKET_PATH, catalog_properties):
+      msg = 'Table successfully bootstrapped ✅'
+      logger.info(msg=msg)
+      return {
+        'statusCode': 200,
+        'body': json.dumps(msg)
+      }
+
+    else:
+      msg = 'Nothing to do 🌞'
+      logger.info(msg=msg)
+      return {
+        'statusCode': 200,
+        'body': json.dumps(msg)
+      }
 
         
   except Exception as e:
@@ -63,16 +77,13 @@ def handle_new_file(event, context):
     error_type = type(e).__name__
     stack_info = traceback.format_exc()
 
-    return {
-        'statusCode': 500,
-        'errorType': error_type,
-        'errorMessage': error_message,
-        'stackTrace': stack_info,
+    resp = {
+      'statusCode': 500,
+      'errorType': error_type,
+      'errorMessage': error_message,
+      'stackTrace': stack_info,
     }
 
+    logger.error(f'\nFailed to bootstrap 🔴\n{resp}')
 
-  else:
-    return {
-      'statusCode': 200,
-      'body': json.dumps('Looks good to me 🌞')
-    }
+    return resp

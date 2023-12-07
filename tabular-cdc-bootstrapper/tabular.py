@@ -40,7 +40,8 @@ def bootstrap_from_file(s3_key: str, s3_prefix:str, catalog_properties) -> str:
     # see if the table exists
     try:
       target_table = catalog.load_table(f'{target_db_name}.{target_table_name}')
-      logger.info(f"""Success - Existing table found in catalog...
+      logger.info(f"""
+      Success - Existing table found in catalog...
         s3_key: {s3_key}
         s3_prefix: {s3_prefix}
         target_db_name: {target_db_name}
@@ -52,14 +53,17 @@ def bootstrap_from_file(s3_key: str, s3_prefix:str, catalog_properties) -> str:
 
     except NoSuchTableError as nste:
       # get to boot strappin! 💪
-      logger.info(f"""Success - No table found in catalog, yet...
+      logger.info(f"""
+      Creating table...
         s3_key: {s3_key}
         s3_prefix: {s3_prefix}
         target_db_name: {target_db_name}
         target_table_name: {target_table_name}
       """)
 
-      return True
+      create_table_from_s3_path(s3_key=s3_key, catalog=catalog, database=target_db_name, table=target_table_name)
+
+      return True # good work, team 💪
 
 
 def get_table_schema_from_parquet(parquet_io_object: BytesIO) -> dict: 
