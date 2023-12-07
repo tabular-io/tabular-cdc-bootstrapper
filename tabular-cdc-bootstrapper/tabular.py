@@ -1,6 +1,9 @@
+from io import BytesIO
 import logging
+
+import pyarrow.parquet as pq
 from pyiceberg.catalog import load_catalog
-from pyiceberg.exceptions import NoSuchTableError
+from pyiceberg.exceptions import NoSuchTableError, NamespaceAlreadyExistsError
 
 # Set up logging
 logger = logging.getLogger()
@@ -54,28 +57,39 @@ def bootstrap_from_file(s3_key: str, s3_prefix:str, catalog_properties) -> str:
         s3_prefix: {s3_prefix}
         target_db_name: {target_db_name}
         target_table_name: {target_table_name}
-
       """)
 
       return True
 
 
+def get_table_schema_from_parquet(parquet_io_object: BytesIO) -> dict: 
+  # read that schema
+  parquet_io_object.seek(0)
+  table = pq.read_table(source=parquet_io_object)
+  return table.schema
+
+
 def create_table_from_s3_path(s3_key: str, catalog, database: str, table: str):
     """
-    Call tabular API to infer the schema of the table to be created from the s3 path.
-    Then create the table.
+    Creates an empty, columnless iceberg table with the given database and table name
+    in the provided iceberg catalog.
+
+    TODO: actually implement schema inference. Someday...
     """
-    # TODO: connection to the placeholder tabular API
-    # Use the api to infer schema from s3 path
-    # schema = infer_schema(tabular_api, s3_key)
 
-    # Once we have the schema
-    # Create a table using the catalog object
-    # table_id = iceberg.TableIdentifier.of(database, table)
-    # iceberg_table = catalog.createTable(table_id, schema)
+    # Create the namespace if it doesn't exist
+    try:
+      catalog.create_namespace(database)
+    except NamespaceAlreadyExistsError as naee:
+      pass
 
-    # return iceberg_table
-    raise NotImplementedError
+    # Create 'db.table'
+    catalog.create_table(
+      identifier=f'{database}.{table}',
+      schema={},
+      properties={'comment': f'created by cdc bootstrapper from s3 file: {s3_key}'}
+    )
+
 
 def bootstrap_load_table(s3_folder_path: str, warehouse: str, database: str, table: str):
     """

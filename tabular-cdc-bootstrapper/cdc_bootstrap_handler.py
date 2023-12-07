@@ -45,6 +45,10 @@ def handle_new_file(event, context):
   """)
 
   try:
+    # parquet-only gate
+    if not object_key.endswith('.parquet'):
+      raise ValueError("Only parquet files are supported right now, sunshine 🌞.")
+
     catalog_properties = {
       'uri':        TABULAR_CATALOG_URI,
       'credential': TABULAR_CREDENTIAL,
