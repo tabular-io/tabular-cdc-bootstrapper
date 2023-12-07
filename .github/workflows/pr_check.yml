@@ -6,7 +6,7 @@ on:
       - main
 
 jobs:
-  test:
+  build_and_test:
     runs-on: ubuntu-latest
 
     steps:
@@ -21,7 +21,7 @@ jobs:
         run: |
           pip install pipenv
           cd tabular-cdc-bootstrapper
-          pipenv install
+          pipenv install --dev
 
       - name: Run tests
         run: |
