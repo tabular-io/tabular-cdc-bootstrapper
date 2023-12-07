@@ -74,7 +74,7 @@ class TestTabular:
 
   def test_create_table_from_s3_path(self):
     mock_s3_key = 'cdc-bootstrap/pyiceberg/_test_create_table_from_s3_path/my-file.json'
-    target_db_name = 'pyiceberg'
+    target_db_name = '_test_cdc_bootloader'
     target_table_name = '_test_create_table_from_s3_path'
 
     try:
@@ -87,4 +87,5 @@ class TestTabular:
     
     finally:
       self.catalog.drop_table(f'{target_db_name}.{target_table_name}')
+      self.catalog.drop_namespace(target_db_name)
 

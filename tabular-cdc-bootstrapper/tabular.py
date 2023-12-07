@@ -3,7 +3,7 @@ import logging
 
 import pyarrow.parquet as pq
 from pyiceberg.catalog import load_catalog
-from pyiceberg.exceptions import NoSuchTableError
+from pyiceberg.exceptions import NoSuchTableError, NamespaceAlreadyExistsError
 
 # Set up logging
 logger = logging.getLogger()
@@ -76,6 +76,13 @@ def create_table_from_s3_path(s3_key: str, catalog, database: str, table: str):
 
     TODO: actually implement schema inference. Someday...
     """
+
+    # Create the namespace if it doesn't exist
+    try:
+      catalog.create_namespace(database)
+    except NamespaceAlreadyExistsError as naee:
+      pass
+
     # Create 'db.table'
     catalog.create_table(
       identifier=f'{database}.{table}',
