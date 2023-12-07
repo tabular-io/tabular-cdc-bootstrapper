@@ -13,6 +13,7 @@ custom:
     zip: true
     noDeploy:
       - pytest
+      - boto3
 
 provider:
   name: aws
@@ -37,8 +38,18 @@ functions:
           event: s3:ObjectCreated:*
           rules:
             - prefix: ${self:custom.s3_bucket_path}
+            - suffix: .parquet
           existing: true
           forceDeploy: true
+
+package:
+  patterns:
+    - '!test*.py'
+    - '!*.parquet'
+    - '!.requirements.zip'
+    - '!.pytest_cache'
+    - '!.github'
+    - '!node_modules'
 
 plugins:
   - serverless-python-requirements

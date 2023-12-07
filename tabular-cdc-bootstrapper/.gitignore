@@ -24,3 +24,6 @@ node_modules
 
 # shhh, secrets. Or maybe just configs, who knows 🤷
 .env
+
+# ignore sample files
+*.parquet
