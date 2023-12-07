@@ -1,4 +1,7 @@
+from io import BytesIO
 import logging
+
+import pyarrow.parquet as pq
 from pyiceberg.catalog import load_catalog
 from pyiceberg.exceptions import NoSuchTableError
 
@@ -60,22 +63,20 @@ def bootstrap_from_file(s3_key: str, s3_prefix:str, catalog_properties) -> str:
       return True
 
 
+def get_table_schema_from_parquet(parquet_io_object: BytesIO) -> dict: 
+  # read that schema
+  parquet_io_object.seek(0)
+  table = pq.read_table(source=parquet_io_object)
+  return table.schema
+
+
+
 def create_table_from_s3_path(s3_key: str, catalog, database: str, table: str):
     """
     Call tabular API to infer the schema of the table to be created from the s3 path.
     Then create the table.
     """
-    # TODO: connection to the placeholder tabular API
-    # Use the api to infer schema from s3 path
-    # schema = infer_schema(tabular_api, s3_key)
-
-    # Once we have the schema
-    # Create a table using the catalog object
-    # table_id = iceberg.TableIdentifier.of(database, table)
-    # iceberg_table = catalog.createTable(table_id, schema)
-
-    # return iceberg_table
-    raise NotImplementedError
+    
 
 def bootstrap_load_table(s3_folder_path: str, warehouse: str, database: str, table: str):
     """
