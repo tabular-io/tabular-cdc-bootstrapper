@@ -57,7 +57,6 @@ def bootstrap_from_file(s3_key: str, s3_prefix:str, catalog_properties) -> str:
         s3_prefix: {s3_prefix}
         target_db_name: {target_db_name}
         target_table_name: {target_table_name}
-
       """)
 
       return True
@@ -70,13 +69,20 @@ def get_table_schema_from_parquet(parquet_io_object: BytesIO) -> dict:
   return table.schema
 
 
-
 def create_table_from_s3_path(s3_key: str, catalog, database: str, table: str):
     """
-    Call tabular API to infer the schema of the table to be created from the s3 path.
-    Then create the table.
+    Creates an empty, columnless iceberg table with the given database and table name
+    in the provided iceberg catalog.
+
+    TODO: actually implement schema inference. Someday...
     """
-    
+    # Create 'db.table'
+    catalog.create_table(
+      identifier=f'{database}.{table}',
+      schema={},
+      properties={'comment': f'created by cdc bootstrapper from s3 file: {s3_key}'}
+    )
+
 
 def bootstrap_load_table(s3_folder_path: str, warehouse: str, database: str, table: str):
     """

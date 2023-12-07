@@ -3,11 +3,22 @@ import os
 
 import pyarrow as pa
 import pyarrow.parquet as pq
+from pyiceberg.catalog import load_catalog
 import pytest
 
 import tabular
 
 class TestTabular:
+  CATALOG_PROPERTIES = {
+    'type':       'rest',
+    'uri':        os.environ['TABULAR_CATALOG_URI'],
+    'credential': os.environ['TABULAR_CREDENTIAL'],
+    'warehouse':  os.environ['TABULAR_TARGET_WAREHOUSE'],
+  }
+
+  catalog = load_catalog(**CATALOG_PROPERTIES)
+
+
   def test_extract_database_and_table(self):
     s3_key = 'cdc-bootstrap/alpha/gazebo/my-file.json'
 
@@ -30,16 +41,9 @@ class TestTabular:
       'database_missing': ('cdc-bootstrap/pyiceberg/alpha/my-file.json', '', True)
     }
 
-    catalog_properties = {
-      'type':       'rest',
-      'uri':        os.environ['TABULAR_CATALOG_URI'],
-      'credential': os.environ['TABULAR_CREDENTIAL'],
-      'warehouse':  os.environ['TABULAR_TARGET_WAREHOUSE'],
-    }
-
     for key in test_cases:
       test_case = test_cases[key]
-      assert tabular.bootstrap_from_file(test_case[0], test_case[1], catalog_properties) == test_case[2]
+      assert tabular.bootstrap_from_file(test_case[0], test_case[1], self.CATALOG_PROPERTIES) == test_case[2]
     
     # test some junk
     with pytest.raises(ValueError):
@@ -67,3 +71,20 @@ class TestTabular:
 
       # assert 💪
       assert set(actual_schema.names) == expected_field_names
+
+  def test_create_table_from_s3_path(self):
+    mock_s3_key = 'cdc-bootstrap/pyiceberg/_test_create_table_from_s3_path/my-file.json'
+    target_db_name = 'pyiceberg'
+    target_table_name = '_test_create_table_from_s3_path'
+
+    try:
+      tabular.create_table_from_s3_path(s3_key=mock_s3_key, catalog=self.catalog, database=target_db_name, table=target_table_name)
+      actual_table = self.catalog.load_table(f'{target_db_name}.{target_table_name}')
+
+      expected_table_name = ('default', target_db_name, target_table_name)
+
+      assert actual_table.name() == expected_table_name
+    
+    finally:
+      self.catalog.drop_table(f'{target_db_name}.{target_table_name}')
+
