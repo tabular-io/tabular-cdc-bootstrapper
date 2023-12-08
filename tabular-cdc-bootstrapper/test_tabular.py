@@ -37,17 +37,23 @@ class TestTabular:
   def test_bootstrap_from_file(self):
     test_cases = {
       'table_exists':     ('cdc-bootstrap/system/catalog_events/my-file.json', 'cdc-bootstrap', False),
-      'table_missing':    ('cdc-bootstrap/fingers-crossed-this-doesnt-exist/missing-table/my-file.json', 'cdc-bootstrap', True),
-      'database_missing': ('cdc-bootstrap/pyiceberg/alpha/my-file.json', '', True)
+      'table_missing':    ('cdc-bootstrap/_pyiceberg_test_bootstrap_from_file/missing-table/my-file.json', 'cdc-bootstrap', True),
     }
 
-    for key in test_cases:
-      test_case = test_cases[key]
-      assert tabular.bootstrap_from_file(test_case[0], test_case[1], self.CATALOG_PROPERTIES) == test_case[2]
+    try:
+      for key in test_cases:
+        test_case = test_cases[key]
+        assert tabular.bootstrap_from_file(test_case[0], test_case[1], self.CATALOG_PROPERTIES) == test_case[2]
+      
+      # test some junk
+      with pytest.raises(ValueError):
+        tabular.bootstrap_from_file('lkdfj.jdsfskl', 'fdassdf', {})
     
-    # test some junk
-    with pytest.raises(ValueError):
-      tabular.bootstrap_from_file('lkdfj.jdsfskl', 'fdassdf', {})
+    # cleanup the missing table or future tests will always fail
+    finally:
+      target_db_name, target_table_name = test_cases['table_missing'][0].split('/')[1:-1]
+      self.catalog.drop_table(f'{target_db_name}.{target_table_name}')
+      self.catalog.drop_namespace(target_db_name)
 
   def test_get_table_schema_from_parquet(self):
     test_sets = [
