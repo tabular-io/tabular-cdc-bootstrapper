@@ -18,7 +18,6 @@ class TestTabular:
 
   catalog = load_catalog(**CATALOG_PROPERTIES)
 
-
   def test_extract_database_and_table(self):
     s3_key = 'cdc-bootstrap/alpha/gazebo/my-file.json'
 
@@ -33,11 +32,14 @@ class TestTabular:
     
     with pytest.raises(ValueError):
       tabular.extract_database_and_table(s3_key, 'cdc-bootstrap/alpha')
+    
+    with pytest.raises(ValueError):
+      tabular.extract_database_and_table(s3_key, 'non/overlapping/monitoring/path')
 
   def test_bootstrap_from_file(self):
     test_cases = {
-      'table_exists':     ('cdc-bootstrap/system/catalog_events/my-file.json', 'cdc-bootstrap', False),
-      'table_missing':    ('cdc-bootstrap/_pyiceberg_test_bootstrap_from_file/missing-table/my-file.json', 'cdc-bootstrap', True),
+      'table_exists':     ('cdc-bootstrap/system/catalog_events/my-file.json', 's3://some_bucket/cdc-bootstrap', False),
+      'table_missing':    ('cdc-bootstrap/_test_cdc_bootloader/missing-table/my-file.json', 's3://some_bucket/cdc-bootstrap', True),
     }
 
     try:
@@ -78,13 +80,13 @@ class TestTabular:
       # assert 💪
       assert set(actual_schema.names) == expected_field_names
 
-  def test_create_table_from_s3_path(self):
-    mock_s3_key = 'cdc-bootstrap/pyiceberg/_test_create_table_from_s3_path/my-file.json'
+  def test_create_file_loader_target(self):
     target_db_name = '_test_cdc_bootloader'
     target_table_name = '_test_create_table_from_s3_path'
+    mock_s3_target_uri = f's3://some-bucket/cdc-bootstrap/{target_db_name}/{target_table_name}'
 
     try:
-      tabular.create_table_from_s3_path(s3_key=mock_s3_key, catalog=self.catalog, database=target_db_name, table=target_table_name)
+      tabular.create_file_loader_target(mock_s3_target_uri, catalog=self.catalog, database=target_db_name, table=target_table_name)
       actual_table = self.catalog.load_table(f'{target_db_name}.{target_table_name}')
 
       expected_table_name = ('default', target_db_name, target_table_name)
@@ -95,3 +97,19 @@ class TestTabular:
       self.catalog.drop_table(f'{target_db_name}.{target_table_name}')
       self.catalog.drop_namespace(target_db_name)
 
+  def test_parse_s3_monitoring_uri(self):
+    test_cases = [
+      ('s3://some_bucket', ('some_bucket', '')),
+      ('s3://some_bucket/some_path', ('some_bucket', 'some_path')),
+      ('s3://some_bucket/some/nested/path', ('some_bucket', 'some/nested/path'))
+    ]
+
+    for tc in test_cases:
+      assert tc[1] == tabular.parse_s3_monitoring_uri(tc[0])
+    
+    with pytest.raises(ValueError):
+      tabular.parse_s3_monitoring_uri('feefasdfasdflkjh') 
+    with pytest.raises(ValueError):
+      tabular.parse_s3_monitoring_uri('s3://') 
+    with pytest.raises(ValueError):
+      tabular.parse_s3_monitoring_uri('') 

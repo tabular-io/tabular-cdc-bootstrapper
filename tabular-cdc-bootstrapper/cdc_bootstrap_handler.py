@@ -10,9 +10,7 @@ try:
 except ImportError:
   pass
 
-
 import tabular
-
 
 # Tabular ENVs
 TABULAR_CREDENTIAL       = os.environ['TABULAR_CREDENTIAL']
@@ -20,8 +18,7 @@ TABULAR_CATALOG_URI      = os.environ['TABULAR_CATALOG_URI']
 TABULAR_TARGET_WAREHOUSE = os.environ['TABULAR_TARGET_WAREHOUSE']
 
 # S3 Monitoring ENVs
-S3_BUCKET_NAME = os.environ['S3_BUCKET_NAME']
-S3_BUCKET_PATH = os.environ.get('S3_BUCKET_PATH', '') # monitor the whole bucket if no path provided
+S3_MONITORING_URI = os.environ['S3_MONITORING_URI']
 
 
 # Set up logging
@@ -37,8 +34,7 @@ def handle_new_file(event, context):
   logger.info(f"""Processing new bootstrap event...
     TABULAR_CATALOG_URI: {TABULAR_CATALOG_URI}
     TABULAR_TARGET_WAREHOUSE: {TABULAR_TARGET_WAREHOUSE}
-    S3_BUCKET_NAME: {S3_BUCKET_NAME}
-    S3_BUCKET_PATH: {S3_BUCKET_PATH}
+    S3_MONITORING_URI: {S3_MONITORING_URI}
 
     Object Key: {object_key}
 
@@ -55,7 +51,7 @@ def handle_new_file(event, context):
       'warehouse':  TABULAR_TARGET_WAREHOUSE
     }
 
-    if tabular.bootstrap_from_file(object_key, S3_BUCKET_PATH, catalog_properties):
+    if tabular.bootstrap_from_file(object_key, S3_MONITORING_URI, catalog_properties):
       msg = 'Table successfully bootstrapped ✅'
       logger.info(msg=msg)
       return {
