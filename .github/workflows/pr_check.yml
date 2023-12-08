@@ -7,7 +7,18 @@ on:
 
 jobs:
   build_and_test:
+    name: Build and test cdc bootstrapper locally (no sls deploy)
     runs-on: ubuntu-latest
+    
+
+    env:
+      S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }} 
+      S3_BUCKET_PATH: ${{ secrets.S3_BUCKET_PATH }}
+
+      TABULAR_CREDENTIAL: ${{ secrets.TABULAR_CREDENTIAL }}
+      TABULAR_TARGET_WAREHOUSE: ${{ secrets.TABULAR_TARGET_WAREHOUSE }}
+      TABULAR_CATALOG_URI: ${{ secrets.TABULAR_CATALOG_URI }}
+
 
     steps:
       - uses: actions/checkout@v2
