@@ -34,6 +34,10 @@ pipenv install
 ```.env
 S3_BUCKET_NAME=randy-pitcher-workspace--aws
 S3_BUCKET_PATH=cdc-bootstrap
+
+TABULAR_TARGET_WAREHOUSE=enterprise_data_warehouse
+TABULAR_CREDENTIAL=t-1234:123123123 # needs permission to create database in a warehouse and list all existing objects in a warehouse
+TABULAR_CATALOG_URI=https://api.tabular.io/ws
 ```
 - activate the python virtual environment with `pipenv shell`
 - deploy with `npx sls deploy`. NOTE: if you want to just run `sls deploy`, install serverless globally with npm (`npm install -g serverless`)
