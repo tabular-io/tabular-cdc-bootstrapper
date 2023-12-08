@@ -12,13 +12,15 @@ except ImportError:
 
 import tabular
 
-# Tabular ENVs
+# Tabular connectivity
 TABULAR_CREDENTIAL       = os.environ['TABULAR_CREDENTIAL']
 TABULAR_CATALOG_URI      = os.environ['TABULAR_CATALOG_URI']
 TABULAR_TARGET_WAREHOUSE = os.environ['TABULAR_TARGET_WAREHOUSE']
 
-# S3 Monitoring ENVs
-S3_MONITORING_URI = os.environ['S3_MONITORING_URI']
+# S3 Monitoring
+S3_BUCKET_TO_MONITOR = os.environ['S3_BUCKET_TO_MONITOR']
+S3_PATH_TO_MONITOR   = os.environ['S3_PATH_TO_MONITOR']
+S3_MONITORING_URI = f'{S3_BUCKET_TO_MONITOR}/{S3_PATH_TO_MONITOR}'
 
 
 # Set up logging

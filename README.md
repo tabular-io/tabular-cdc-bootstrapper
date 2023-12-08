@@ -32,7 +32,8 @@ pipenv install
 - [configure serverless for your AWS account.](https://www.serverless.com/framework/docs/providers/aws/guide/credentials)
 - update serverless.yml with your specific configs, including tabular credentials. You may also provide a `.env` file if you prefer. Place the file alongside the `serverless.yml` file in the same directory 💪
 ```.env
-S3_MONITORING_URI=s3://randy-pitcher-workspace--aws/cdc-bootstrap
+S3_BUCKET_TO_MONITOR=randy-pitcher-workspace--aws
+S3_PATH_TO_MONITOR=cdc-bootstrap
 
 TABULAR_TARGET_WAREHOUSE=enterprise_data_warehouse
 TABULAR_CREDENTIAL=t-1234:123123123 # needs permission to create database in a warehouse and list all existing objects in a warehouse

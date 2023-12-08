@@ -119,7 +119,7 @@ def bootstrap_from_file(s3_object_path: str, s3_monitoring_uri:str, catalog_prop
     """)
 
     file_loader_monitoring_path = f'{s3_monitoring_uri}/{target_db_name}/{target_table_name}'
-    create_file_loader_target(
+    create_file_loader_target_table(
       file_loader_monitoring_path, 
       catalog=catalog, 
       database=target_db_name, 
@@ -128,7 +128,7 @@ def bootstrap_from_file(s3_object_path: str, s3_monitoring_uri:str, catalog_prop
 
     return True # good work, team 💪
 
-def create_file_loader_target(s3_uri_file_loader_directory: str, catalog, database: str, table: str):
+def create_file_loader_target_table(s3_uri_file_loader_directory: str, catalog, database: str, table: str):
     """
     Creates an empty, columnless iceberg table with the given 
     database and table name in the provided iceberg catalog.
@@ -155,4 +155,29 @@ def create_file_loader_target(s3_uri_file_loader_directory: str, catalog, databa
       properties=table_props
     )
 
-# todo: create_cdc_mirror_target
+def create_cdc_mirror_target_table(s3_uri_file_loader_directory: str, catalog, database: str, table: str):
+    """
+    Creates an empty, columnless iceberg table with the given 
+    database and table name in the provided iceberg catalog.
+    """
+    loader_dir = s3_uri_file_loader_directory.strip('/')
+    if not loader_dir.startswith('s3://'):
+      raise ValueError(f'valid s3 uri must be provided for file loader target table creation. Got: {s3_uri_file_loader_directory}')
+    if loader_dir.endswith('.parquet'):
+      raise ValueError(f'Expecting an s3 folder path but got: {s3_uri_file_loader_directory}')
+
+    # Create the namespace if it doesn't exist
+    try:
+      catalog.create_namespace(database)
+    except NamespaceAlreadyExistsError as naee:
+      pass
+
+    # Create 'db.table'
+    table_props = get_tabular_table_properties(loader_dir)
+    table_props['comment'] = f'created by cdc bootstrapper to monitor {s3_uri_file_loader_directory}'
+    print(table_props)
+    catalog.create_table(
+      identifier=f'{database}.{table}',
+      schema={},
+      properties=table_props
+    )

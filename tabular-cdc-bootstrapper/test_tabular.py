@@ -80,13 +80,13 @@ class TestTabular:
       # assert 💪
       assert set(actual_schema.names) == expected_field_names
 
-  def test_create_file_loader_target(self):
+  def test_create_file_loader_target_table(self):
     target_db_name = '_test_cdc_bootloader'
     target_table_name = '_test_create_table_from_s3_path'
     mock_s3_target_uri = f's3://some-bucket/cdc-bootstrap/{target_db_name}/{target_table_name}'
 
     try:
-      tabular.create_file_loader_target(mock_s3_target_uri, catalog=self.catalog, database=target_db_name, table=target_table_name)
+      tabular.create_file_loader_target_table(mock_s3_target_uri, catalog=self.catalog, database=target_db_name, table=target_table_name)
       actual_table = self.catalog.load_table(f'{target_db_name}.{target_table_name}')
 
       expected_table_name = ('default', target_db_name, target_table_name)
