@@ -8,11 +8,13 @@ WORKDIR /app
 RUN pip install pipenv
 
 # Install dependencies using Pipfile
-COPY ./Pipfile* ./
-#RUN pipenv install
+COPY ../batch-bootstrapper/Pipfile* ./
+RUN pipenv install
 
 # Copy src files
-COPY ./*.py ./
+COPY ../batch-bootstrapper/*.py ./
+COPY ../lambda-bootstrapper/tabular.py ./
+
 
 # Run batch bootstrapper
-#CMD [ "pipenv", "run", "python", "batch_bootstrapper" ]
+CMD [ "pipenv", "run", "python", "batch_bootstrapper.py" ]
