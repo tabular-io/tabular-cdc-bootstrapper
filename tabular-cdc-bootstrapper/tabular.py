@@ -24,7 +24,7 @@ def parse_s3_monitoring_uri(s3_monitoring_uri: str) -> (str, str):
   monitoring_path = '/'.join(uri_components[1:])
   return (bucket_name, monitoring_path)
 
-def extract_database_and_table(s3_object_path: str, s3_monitoring_path: str = ''):
+def extract_database_and_table(s3_object_path: str, s3_monitoring_path: str = '', is_dir: bool = False):
   """
   Extract the database and table name from the s3 object path, relative to 
   the s3_monitoring_path -> /some-path-to-monitor/{database}/{table_name}
@@ -39,7 +39,8 @@ def extract_database_and_table(s3_object_path: str, s3_monitoring_path: str = ''
   relevant_s3_path = s3_object_path[len(s3_monitoring_path):].strip('/')
 
   try:
-    relevant_parent_folders = relevant_s3_path.split('/')[:-1] #ignore the actual file by dropping the last element (-1 index)
+    # ignore the actual file by dropping the last element (-1 index) if this isn't a directory path
+    relevant_parent_folders = relevant_s3_path.split('/')[:-1] if not is_dir else relevant_s3_path.split('/')
     database = relevant_parent_folders[0]
     table = relevant_parent_folders[1]
 

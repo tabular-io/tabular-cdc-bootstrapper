@@ -6,6 +6,7 @@ name = "pypi"
 [packages]
 pyiceberg = {extras = ["s3fs"], version = "*"}
 pyarrow = "*"
+duckdb = "*"
 
 [dev-packages]
 pytest = "*"

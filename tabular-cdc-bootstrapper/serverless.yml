@@ -14,6 +14,7 @@ custom:
     noDeploy:
       - pytest
       - boto3
+      - duckdb
 
 provider:
   name: aws
