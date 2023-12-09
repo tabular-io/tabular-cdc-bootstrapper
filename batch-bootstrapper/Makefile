@@ -1,6 +1,6 @@
-all: Dockerfile run
+all: build run
 
-Dockerfile:
+build:
 	docker build -t tabular-cdc-batch-bootstrapper .
 
 run:

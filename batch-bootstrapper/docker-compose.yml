@@ -1,0 +1,5 @@
+version: '3'
+services:
+  tabular-cdc-batch-bootstrapper:
+    image: tabular-cdc-batch-bootstrapper
+    env_file: .env

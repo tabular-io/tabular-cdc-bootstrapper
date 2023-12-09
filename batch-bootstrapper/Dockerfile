@@ -8,11 +8,11 @@ WORKDIR /app
 RUN pip install pipenv
 
 # Install dependencies using Pipfile
-COPY ./tabular-cdc-bootstrapper/Pipfile* ./
-RUN pipenv install --deploy --ignore-pipfile
+COPY ./Pipfile* ./
+#RUN pipenv install
 
-# Copy just Python and JSON files
-COPY ./tabular-cdc-bootstrapper/*.py ./tabular-cdc-bootstrapper/*.json ./
+# Copy src files
+COPY ./*.py ./
 
-# Run batch_execute.py
-CMD [ "pipenv", "run", "python", "batch_execute.py" ]
+# Run batch bootstrapper
+#CMD [ "pipenv", "run", "python", "batch_bootstrapper" ]
