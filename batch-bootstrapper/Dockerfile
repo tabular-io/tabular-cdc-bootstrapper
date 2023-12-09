@@ -14,8 +14,5 @@ RUN pipenv install --deploy --ignore-pipfile
 # Copy just Python and JSON files
 COPY ./tabular-cdc-bootstrapper/*.py ./tabular-cdc-bootstrapper/*.json ./
 
-# Copy .env file
-COPY ./tabular-cdc-bootstrapper/.env ./
-
 # Run batch_execute.py
 CMD [ "pipenv", "run", "python", "batch_execute.py" ]
