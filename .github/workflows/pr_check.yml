@@ -24,5 +24,5 @@ jobs:
       - name: Run make test
         run: |
           cd batch-bootstrapper
-          env | grep -v '^_' > .env # gather gh actions vars for docker test run
+          env | grep -E '^TABULAR_|^S3_BUCKET_' > .env # gather gh actions vars for docker test run
           make test-ci
