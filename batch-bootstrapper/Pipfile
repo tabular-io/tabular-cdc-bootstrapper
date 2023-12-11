@@ -6,7 +6,6 @@ name = "pypi"
 [packages]
 pyiceberg = "*"
 duckdb = "*"
-pyarrow = "*"
 pytest = "*"
 pytest-xdist = "*"
 

@@ -111,19 +111,19 @@ def main():
 
   for target in targets:
     try:
-      database, table = tabular.extract_database_and_table(target, S3_PATH_TO_MONITOR, is_dir=True)
       logging.info(f"""
         Processing target: {target}
-        Target database: {database}
-        Target table: {table}
       """)
-      tabular.bootstrap_cdc_target(target, catalog, database, table)
+      tabular.bootstrap_cdc_target(
+        s3_file_loader_target_path=target, 
+        s3_bucket_name=S3_BUCKET_TO_MONITOR,
+        catalog=catalog
+      )
 
     except Exception as exc:
       logging.error(f"""
         Error processing target "{target}"! Will skip it for now 🫠. Actual error below:
-        {str(exc)}
-      """)
+      """, exc_info=True)
 
 
 if __name__ == '__main__':

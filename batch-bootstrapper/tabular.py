@@ -72,7 +72,7 @@ def bootstrap_cdc_target(
     - s3_file_loader_target_path (str): The S3 object path to the file_loader 
       directory path to process.
     - s3_bucket_name (str): The name of the S3 bucket being monitored.
-    - catalog: Pyiceberg catalog
+    - catalog: Pyiceberg catalog to use for querying
 
   Returns:
     bool: True when a table is created, False when it already exists. Is this 
