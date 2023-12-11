@@ -29,4 +29,4 @@ jobs:
           env | grep -E '^TABULAR_|^S3_' > .env # gather gh actions vars for docker test run
           echo "running with the following configs..."
           grep -v '^TABULAR_CREDENTIAL' .env
-          make test-ci
+          make test

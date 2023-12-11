@@ -8,6 +8,7 @@ pyiceberg = "*"
 duckdb = "*"
 pyarrow = "*"
 pytest = "*"
+pytest-xdist = "*"
 
 [requires]
 python_version = "3.9"
