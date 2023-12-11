@@ -14,29 +14,6 @@ env:
   TABULAR_CATALOG_URI:      ${{ vars.TABULAR_CATALOG_URI }}
 
 jobs:
-  build_and_test_lambda:
-    name: Build and test lambda cdc bootstrapper locally (no sls deploy)
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v2
-
-      - name: Set up Python 3.9
-        uses: actions/setup-python@v2
-        with:
-          python-version: 3.9
-
-      - name: Install dependencies
-        run: |
-          pip install pipenv
-          cd lambda-bootstrapper
-          pipenv install --dev
-
-      - name: Run tests
-        run: |
-          cd lambda-bootstrapper
-          pipenv run pytest
-
   build_and_test_batch:
     name: Build dockerfile and execute pytest
     runs-on: ubuntu-latest
