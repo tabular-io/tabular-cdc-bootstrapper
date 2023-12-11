@@ -5,6 +5,7 @@ on:
     branches: 
       - main
 
+<<<<<<< HEAD
 env:
   S3_BUCKET_TO_MONITOR:        ${{ vars.S3_BUCKET_TO_MONITOR }} 
   S3_PATH_TO_MONITOR:          ${{ vars.S3_PATH_TO_MONITOR }}
@@ -30,3 +31,38 @@ jobs:
           echo "running with the following configs..."
           grep -v '^TABULAR_CREDENTIAL' .env
           make test
+=======
+jobs:
+  build_and_test:
+    name: Build and test cdc bootstrapper locally (no sls deploy)
+    runs-on: ubuntu-latest
+
+
+    env:
+      S3_BUCKET_NAME:           ${{ vars.S3_BUCKET_NAME }} 
+      S3_BUCKET_PATH:           ${{ vars.S3_BUCKET_PATH }}
+
+      TABULAR_CREDENTIAL:       ${{ secrets.TABULAR_CREDENTIAL }}
+      TABULAR_TARGET_WAREHOUSE: ${{ vars.TABULAR_TARGET_WAREHOUSE }}
+      TABULAR_CATALOG_URI:      ${{ vars.TABULAR_CATALOG_URI }}
+
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+
+      - name: Install dependencies
+        run: |
+          pip install pipenv
+          cd tabular-cdc-bootstrapper
+          pipenv install --dev
+
+      - name: Run tests
+        run: |
+          cd tabular-cdc-bootstrapper
+          pipenv run pytest
+>>>>>>> 8dce317084d76d83707e42d2d4e55e46ff91c5bb
