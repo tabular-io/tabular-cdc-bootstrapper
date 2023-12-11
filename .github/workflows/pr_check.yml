@@ -47,4 +47,5 @@ jobs:
       - name: Run make test
         run: |
           cd batch-bootstrapper
+          env | grep -v '^_' > .env # gather gh actions vars for docker test run
           make test-ci
