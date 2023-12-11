@@ -4,11 +4,11 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-pyiceberg = {extras = ["s3fs"], version = "*"}
+pyiceberg = "*"
+duckdb = "*"
 pyarrow = "*"
-
-[dev-packages]
 pytest = "*"
+pytest-xdist = "*"
 
 [requires]
 python_version = "3.9"

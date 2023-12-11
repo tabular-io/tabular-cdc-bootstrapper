@@ -21,6 +21,7 @@ var/
 node_modules
 .pytest_cache
 .requirements.zip
+.DS_Store
 
 # shhh, secrets. Or maybe just configs, who knows 🤷
 .env
