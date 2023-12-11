@@ -115,7 +115,7 @@ def main():
       Target database: {database}
       Target table: {table}
     """)
-    tabular.create_file_loader_target_table(f's3://{target}', catalog, database, table)
+    tabular.create_file_loader_target_table(target, catalog, database, table)
 
 
 if __name__ == '__main__':
