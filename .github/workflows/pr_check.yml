@@ -25,4 +25,6 @@ jobs:
         run: |
           cd batch-bootstrapper
           env | grep -E '^TABULAR_|^S3_BUCKET_' > .env # gather gh actions vars for docker test run
+          echo "running with the following configs..."
+          grep -v '^TABULAR_CREDENTIAL' filename
           make test-ci
