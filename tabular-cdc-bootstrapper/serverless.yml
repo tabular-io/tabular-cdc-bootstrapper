@@ -5,14 +5,15 @@ service: tabular-cdc-bootstrapper
 frameworkVersion: "3"
 
 custom:
-  s3_bucket_name: ${env:S3_BUCKET_NAME, 'you_can_hardcode_here'}
-  s3_bucket_path: ${env:S3_BUCKET_PATH, 'you_can_hardcode_here'}
+  s3_bucket_name: ${env:S3_BUCKET_TO_MONITOR, 'you_can_hardcode_here'}
+  s3_bucket_path: ${env:S3_PATH_TO_MONITOR, 'you_can_hardcode_here'}
 
   pythonRequirements:
     dockerizePip: true
     zip: true
     noDeploy:
       - pytest
+      - boto3
 
 provider:
   name: aws
@@ -37,8 +38,18 @@ functions:
           event: s3:ObjectCreated:*
           rules:
             - prefix: ${self:custom.s3_bucket_path}
+            - suffix: .parquet
           existing: true
           forceDeploy: true
+
+package:
+  patterns:
+    - '!test*.py'
+    - '!*.parquet'
+    - '!.requirements.zip'
+    - '!.pytest_cache'
+    - '!.github'
+    - '!node_modules'
 
 plugins:
   - serverless-python-requirements

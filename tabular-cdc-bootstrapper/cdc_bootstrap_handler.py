@@ -10,18 +10,17 @@ try:
 except ImportError:
   pass
 
-
 import tabular
 
-
-# Tabular ENVs
+# Tabular connectivity
 TABULAR_CREDENTIAL       = os.environ['TABULAR_CREDENTIAL']
 TABULAR_CATALOG_URI      = os.environ['TABULAR_CATALOG_URI']
 TABULAR_TARGET_WAREHOUSE = os.environ['TABULAR_TARGET_WAREHOUSE']
 
-# S3 Monitoring ENVs
-S3_BUCKET_NAME = os.environ['S3_BUCKET_NAME']
-S3_BUCKET_PATH = os.environ.get('S3_BUCKET_PATH', '') # monitor the whole bucket if no path provided
+# S3 Monitoring
+S3_BUCKET_TO_MONITOR = os.environ['S3_BUCKET_TO_MONITOR']
+S3_PATH_TO_MONITOR   = os.environ['S3_PATH_TO_MONITOR']
+S3_MONITORING_URI = f's3://{S3_BUCKET_TO_MONITOR}/{S3_PATH_TO_MONITOR}'
 
 
 # Set up logging
@@ -37,8 +36,7 @@ def handle_new_file(event, context):
   logger.info(f"""Processing new bootstrap event...
     TABULAR_CATALOG_URI: {TABULAR_CATALOG_URI}
     TABULAR_TARGET_WAREHOUSE: {TABULAR_TARGET_WAREHOUSE}
-    S3_BUCKET_NAME: {S3_BUCKET_NAME}
-    S3_BUCKET_PATH: {S3_BUCKET_PATH}
+    S3_MONITORING_URI: {S3_MONITORING_URI}
 
     Object Key: {object_key}
 
@@ -55,7 +53,21 @@ def handle_new_file(event, context):
       'warehouse':  TABULAR_TARGET_WAREHOUSE
     }
 
-    tabular.bootstrap_from_file(object_key, S3_BUCKET_PATH, catalog_properties)
+    if tabular.bootstrap_from_file(object_key, S3_MONITORING_URI, catalog_properties):
+      msg = 'Table successfully bootstrapped ✅'
+      logger.info(msg=msg)
+      return {
+        'statusCode': 200,
+        'body': json.dumps(msg)
+      }
+
+    else:
+      msg = 'Nothing to do 🌞'
+      logger.info(msg=msg)
+      return {
+        'statusCode': 200,
+        'body': json.dumps(msg)
+      }
 
         
   except Exception as e:
@@ -63,16 +75,13 @@ def handle_new_file(event, context):
     error_type = type(e).__name__
     stack_info = traceback.format_exc()
 
-    return {
-        'statusCode': 500,
-        'errorType': error_type,
-        'errorMessage': error_message,
-        'stackTrace': stack_info,
+    resp = {
+      'statusCode': 500,
+      'errorType': error_type,
+      'errorMessage': error_message,
+      'stackTrace': stack_info,
     }
 
+    logger.error(f'\nFailed to bootstrap 🔴\n{resp}')
 
-  else:
-    return {
-      'statusCode': 200,
-      'body': json.dumps('Looks good to me 🌞')
-    }
+    return resp

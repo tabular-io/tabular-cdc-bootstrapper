@@ -6,8 +6,19 @@ on:
       - main
 
 jobs:
-  test:
+  build_and_test:
+    name: Build and test cdc bootstrapper locally (no sls deploy)
     runs-on: ubuntu-latest
+
+
+    env:
+      S3_BUCKET_NAME:           ${{ vars.S3_BUCKET_NAME }} 
+      S3_BUCKET_PATH:           ${{ vars.S3_BUCKET_PATH }}
+
+      TABULAR_CREDENTIAL:       ${{ secrets.TABULAR_CREDENTIAL }}
+      TABULAR_TARGET_WAREHOUSE: ${{ vars.TABULAR_TARGET_WAREHOUSE }}
+      TABULAR_CATALOG_URI:      ${{ vars.TABULAR_CATALOG_URI }}
+
 
     steps:
       - uses: actions/checkout@v2
@@ -21,7 +32,7 @@ jobs:
         run: |
           pip install pipenv
           cd tabular-cdc-bootstrapper
-          pipenv install
+          pipenv install --dev
 
       - name: Run tests
         run: |
