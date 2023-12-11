@@ -47,4 +47,4 @@ jobs:
       - name: Run make test
         run: |
           cd batch-bootstrapper
-          make test
+          make test-ci
