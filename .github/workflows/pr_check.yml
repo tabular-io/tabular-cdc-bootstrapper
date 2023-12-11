@@ -8,7 +8,7 @@ on:
 env:
   S3_BUCKET_TO_MONITOR:        ${{ vars.S3_BUCKET_TO_MONITOR }} 
   S3_PATH_TO_MONITOR:          ${{ vars.S3_PATH_TO_MONITOR }}
-  
+
   TABULAR_CREDENTIAL:          ${{ secrets.TABULAR_CREDENTIAL }}
   TABULAR_TARGET_WAREHOUSE:    ${{ vars.TABULAR_TARGET_WAREHOUSE }}
   TABULAR_CATALOG_URI:         ${{ vars.TABULAR_CATALOG_URI }}
@@ -26,7 +26,7 @@ jobs:
       - name: Run make test
         run: |
           cd batch-bootstrapper
-          env | grep -E '^TABULAR_|^S3_BUCKET_' > .env # gather gh actions vars for docker test run
+          env | grep -E '^TABULAR_|^S3_' > .env # gather gh actions vars for docker test run
           echo "running with the following configs..."
           grep -v '^TABULAR_CREDENTIAL' .env
           make test-ci
