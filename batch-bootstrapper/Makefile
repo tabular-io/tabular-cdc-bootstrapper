@@ -13,7 +13,8 @@ test: build
 	docker run -it --env-file ./.env tabular-cdc-batch-bootstrapper pipenv run pytest -v
 
 test-ci: build
-	docker run -t --env-file ./.env tabular-cdc-batch-bootstrapper pipenv run pytest -v
+	cat ./.env
+	docker run -t  --env-file ./.env tabular-cdc-batch-bootstrapper pipenv run pytest -v
 
 run-interactive:
 	docker run -it --env-file ./.env tabular-cdc-batch-bootstrapper sh
