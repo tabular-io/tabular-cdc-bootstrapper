@@ -62,10 +62,10 @@ class TestTabular:
     finally:
       try:
         self.catalog.drop_table(f'{target_db}.{target_table}')
+        self.catalog.drop_table(f'{target_db}.{target_table}__cdc_target')
         self.catalog.drop_namespace(target_db)
       except NoSuchTableError as nste:
         pass # if the test fails before a table is created, this error can happen. ndb ⚡
-
 
   def test_create_file_loader_target_table(self):
     target_db_name = '_test_cdc_bootloader'

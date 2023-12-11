@@ -117,6 +117,8 @@ def main():
       tabular.bootstrap_cdc_target(
         s3_file_loader_target_path=target, 
         s3_bucket_name=S3_BUCKET_TO_MONITOR,
+        cdc_id_field=TABULAR_CDC_ID_FIELD,
+        cdc_timestamp_field=TABULAR_CDC_TIMESTAMP_FIELD,
         catalog=catalog
       )
 

@@ -1,7 +1,7 @@
 import logging
 
-from pyiceberg import Table, Catalog
-from pyiceberg.catalog import load_catalog
+from pyiceberg.table import Table
+from pyiceberg.catalog import Catalog, load_catalog
 from pyiceberg.exceptions import NoSuchTableError, NamespaceAlreadyExistsError
 
 # Set up logging
@@ -86,7 +86,7 @@ def bootstrap_cdc_target(
   s3_bucket_name: str,  
   cdc_id_field: str,
   cdc_timestamp_field: str,
-  catalog: Catlog
+  catalog: Catalog
   ) -> str:
   """
   Connects to an iceberg rest catalog with catalog_properties and bootstraps
@@ -204,7 +204,7 @@ def create_cdc_target_table(
   _, source_db, source_table = cdc_source_table.name()
   target_table_identifier = f'{source_db}.{source_table}__cdc_target'
   table_props = get_cdc_target_table_properties(cdc_id_field=cdc_id_field, cdc_timestamp_field=cdc_timestamp_field)
-  table_props['comment'] = f'created by cdc bootstrapper to monitor {s3_uri_file_loader_directory}'
+  table_props['comment'] = f'created by cdc bootstrapper to perform cdc mirroring of {source_db}.{source_table}'
 
   catalog.create_table(
     identifier=target_table_identifier,
@@ -214,4 +214,4 @@ def create_cdc_target_table(
 
   # now update the cdc source table with a cdc property
   with cdc_source_table.transaction() as txn:
-    txn.set_properties({'dependent-tables': target_table_identifier})
+    txn.set_properties(**{'dependent-tables': target_table_identifier})
