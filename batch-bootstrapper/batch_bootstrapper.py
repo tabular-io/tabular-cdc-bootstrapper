@@ -59,12 +59,13 @@ def get_unique_target_paths(duck, duck_table, s3_path):
   return target_paths
 
 
-def get_s3_targets_from_tabular(catalog, s3_path):
+def get_s3_targets_from_tabular(catalog, s3_bucket, s3_path):
   existing_tables = get_catalog_contents(catalog)
   existing_load_paths = [f'{s3_path}/{db}/{table}' for db, table in existing_tables]
 
   s3_inventory_predicates = expressions.And(
     expressions.IsNull('resource_type'), 
+    expressions.StartsWith('bucket', s3_bucket),
     expressions.StartsWith('key', s3_path)
   )
 
@@ -103,19 +104,20 @@ def main():
 
   catalog = load_catalog(**catalog_properties)
 
-  targets = get_s3_targets_from_tabular(catalog, S3_PATH_TO_MONITOR)
+  targets = get_s3_targets_from_tabular(catalog, S3_BUCKET_TO_MONITOR, S3_PATH_TO_MONITOR)
 
   if not targets:
     logging.info('No targets to process. That was easy 💃')
 
-  for target in targets:
-    database, table = tabular.extract_database_and_table(target, S3_PATH_TO_MONITOR, is_dir=True)
+  for target_path in targets:
+    database, table = tabular.extract_database_and_table(target_path, S3_PATH_TO_MONITOR, is_dir=True)
     logging.info(f"""
-      Processing target: {target}
+      Processing target: {target_path}
       Target database: {database}
       Target table: {table}
     """)
-    tabular.create_file_loader_target_table(target, catalog, database, table)
+    target_uri = f's3://{S3_BUCKET_TO_MONITOR}/{target_path}'
+    tabular.create_file_loader_target_table(target_uri, catalog, database, table)
 
 
 if __name__ == '__main__':
