@@ -121,7 +121,7 @@ def main():
 
     except Exception as exc:
       logging.error(f"""
-        Error processing target "{target_path}"! Will skip it for now 🫠. Actual error below:
+        Error processing target "{target}"! Will skip it for now 🫠. Actual error below:
         {str(exc)}
       """)
 

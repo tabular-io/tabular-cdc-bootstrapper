@@ -1,7 +1,5 @@
-from io import BytesIO
 import logging
 
-import pyarrow.parquet as pq
 from pyiceberg.catalog import load_catalog
 from pyiceberg.exceptions import NoSuchTableError, NamespaceAlreadyExistsError
 
@@ -9,36 +7,29 @@ from pyiceberg.exceptions import NoSuchTableError, NamespaceAlreadyExistsError
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-def extract_database_and_table(s3_object_path: str, s3_monitoring_path: str = '', is_dir: bool = False):
+def get_db_and_table_from_s3_path(file_loader_s3_path: str):
   """
-  Extract the database and table name from the s3 object path, relative to 
-  the s3_monitoring_path -> /some-path-to-monitor/{database}/{table_name}
-  """
-  if not s3_object_path.startswith(s3_monitoring_path):
-    raise ValueError(f"""
-      s3_object_path must exist within s3_monitoring_path:
-      - s3_object_path:     "{s3_object_path}"
-      - s3_monitoring_path: "{s3_monitoring_path}"
-    """)
+  Extract the database and table name from the s3 object path
 
-  relevant_s3_path = s3_object_path[len(s3_monitoring_path):].strip('/')
+  Args:
+    - file_loader_s3_path: str - folder path that should be monitored by file loader. 
+
+  Returns:
+    (database_name, table_name): tuple(str, str) - db name and table name strings from the given path
+  """
   logger.info(f"""
     Extracting database and table name from:
-      - s3_object_path:     "{s3_object_path}"
-      - s3_monitoring_path: "{s3_monitoring_path}"
-      - relevant_path: "{relevant_s3_path}"
+      - file_loader_s3_path: "{file_loader_s3_path}"
   """)
-
+  
   try:
-    # ignore the actual file by dropping the last element (-1 index) if this isn't a directory path
-    relevant_parent_folders = relevant_s3_path.split('/')[:-1] if not is_dir else relevant_s3_path.split('/')
-    database = relevant_parent_folders[0]
-    table = relevant_parent_folders[1]
-
-    return database, table
+    database_name, table_name = file_loader_s3_path.strip('/').split('/')[-2:]
+    return (database_name, table_name)
 
   except IndexError:
-    raise ValueError("The s3 key must have at least 2 subdirectory levels.")
+    raise ValueError(f"""
+      The file_loader_s3_path must have at least 2 directory levels, but got {file_loader_s3_path}
+    """)
 
 def get_tabular_table_properties(file_loader_s3_uri: str, cdc_id_field: str = '', cdc_timestamp_field: str = '') -> dict:
   """
@@ -69,37 +60,34 @@ def get_tabular_table_properties(file_loader_s3_uri: str, cdc_id_field: str = ''
   return properties
 
 def bootstrap_cdc_target(
-  s3_object_path: str, 
-  s3_monitoring_path:str, 
+  s3_file_loader_target_path: str, 
   s3_bucket_name: str,  
-  catalog_properties
+  catalog
 ) -> str:
   """
   Connects to an iceberg rest catalog with catalog_properties and bootstraps
   a new table if one doesn't already exist
 
   Args:
-    - s3_object_path (str): The S3 object path to the target to process.
-    - s3_monitoring_path (str): The S3 path being monitored for bootstrapping.
+    - s3_file_loader_target_path (str): The S3 object path to the file_loader 
+      directory path to process.
     - s3_bucket_name (str): The name of the S3 bucket being monitored.
-    - catalog_properties: The properties of the iceberg catalog to connect to.
+    - catalog: Pyiceberg catalog
 
   Returns:
     bool: True when a table is created, False when it already exists. Is this 
       a good pattern? Who can say 🤷
   """
-  catalog = load_catalog('wh', **catalog_properties)
-  target_db_name, target_table_name = extract_database_and_table(s3_object_path, s3_monitoring_path)
+  target_db_name, target_table_name = get_db_and_table_from_s3_path(s3_file_loader_target_path)
 
   # see if the table exists
   try:
     target_table = catalog.load_table(f'{target_db_name}.{target_table_name}')
     logger.info(f"""
     Success - Existing table found in catalog...
-      s3_object_path:     {s3_object_path}
-      s3_monitoring_path: {s3_monitoring_path}
-      target_db_name:     {target_db_name}
-      target_table_name:  {target_table_name}
+      s3_file_loader_target_path: {s3_file_loader_target_path}
+      target_db_name:             {target_db_name}
+      target_table_name:          {target_table_name}
     """)
 
     return False # if the table exists, we're done here 😎
@@ -109,15 +97,14 @@ def bootstrap_cdc_target(
     # get to boot strappin! 💪
     logger.info(f"""
     Creating table...
-      s3_object_path:     {s3_object_path}
-      s3_monitoring_path: {s3_monitoring_path}
-      target_db_name:     {target_db_name}
-      target_table_name:  {target_table_name}
+      s3_file_loader_target_path: {s3_file_loader_target_path}
+      target_db_name:             {target_db_name}
+      target_table_name:          {target_table_name}
     """)
 
-    s3_uri_file_loader_directory = f's3://{s3_bucket_name}/{s3_monitoring_path}/{target_db_name}/{target_table_name}'
+    s3_file_loader_target_uri = f's3://{s3_bucket_name}/{s3_file_loader_target_path}'
     create_file_loader_target_table(
-      s3_uri_file_loader_directory=s3_uri_file_loader_directory, 
+      s3_uri_file_loader_directory=s3_file_loader_target_uri, 
       catalog=catalog, 
       database=target_db_name, 
       table=target_table_name
