@@ -6,12 +6,14 @@ on:
       - main
 
 env:
-  S3_BUCKET_NAME:           ${{ vars.S3_BUCKET_NAME }} 
-  S3_BUCKET_PATH:           ${{ vars.S3_BUCKET_PATH }}
-
-  TABULAR_CREDENTIAL:       ${{ secrets.TABULAR_CREDENTIAL }}
-  TABULAR_TARGET_WAREHOUSE: ${{ vars.TABULAR_TARGET_WAREHOUSE }}
-  TABULAR_CATALOG_URI:      ${{ vars.TABULAR_CATALOG_URI }}
+  S3_BUCKET_TO_MONITOR:        ${{ vars.S3_BUCKET_TO_MONITOR }} 
+  S3_PATH_TO_MONITOR:          ${{ vars.S3_PATH_TO_MONITOR }}
+  
+  TABULAR_CREDENTIAL:          ${{ secrets.TABULAR_CREDENTIAL }}
+  TABULAR_TARGET_WAREHOUSE:    ${{ vars.TABULAR_TARGET_WAREHOUSE }}
+  TABULAR_CATALOG_URI:         ${{ vars.TABULAR_CATALOG_URI }}
+  TABULAR_CDC_ID_FIELD:        ${{ vars.TABULAR_CDC_ID_FIELD }}
+  TABULAR_CDC_TIMESTAMP_FIELD: ${{ vars.TABULAR_CDC_TIMESTAMP_FIELD }}
 
 jobs:
   build_and_test_batch:
