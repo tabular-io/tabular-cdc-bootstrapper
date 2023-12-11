@@ -37,6 +37,12 @@ def extract_database_and_table(s3_object_path: str, s3_monitoring_path: str = ''
     """)
 
   relevant_s3_path = s3_object_path[len(s3_monitoring_path):].strip('/')
+  logger.info(f"""
+    Extracting database and table name from:
+      - s3_object_path:     "{s3_object_path}"
+      - s3_monitoring_path: "{s3_monitoring_path}"
+      - relevant_path: "{relevant_s3_path}"
+  """)
 
   try:
     # ignore the actual file by dropping the last element (-1 index) if this isn't a directory path

@@ -6,8 +6,7 @@ name = "pypi"
 [packages]
 pyiceberg = "*"
 duckdb = "*"
-
-[dev-packages]
+pyarrow = "*"
 pytest = "*"
 
 [requires]

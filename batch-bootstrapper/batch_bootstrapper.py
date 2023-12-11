@@ -36,25 +36,23 @@ def get_catalog_contents(catalog):
 
 
 def get_unique_target_paths(duck, duck_table, s3_path):
-  # to be eligible to load, a file needs at least 2 levels of directory
-  # under the s3_path we're monitoring
-  min_eligible_pathcount = len(s3_path.split('/')) + 2
-
+  path_to_monitor = s3_path if s3_path.endswith('/') else s3_path + '/'
+  
   sql = f"""
-    with candidate_paths as (
-      select
-        split(key, '/') as key_parts,
-        key_parts[:{min_eligible_pathcount}] as load_path_parts,
-        list_aggregate(load_path_parts, 'string_agg', '/') as target_path
+    select distinct
+      array_to_string(
+        regexp_extract_all(
+          key, 
+          '{path_to_monitor}[^/]*/[^/]*'
+        ), 
+        '/'
+      ) as target_paths
 
-      from
-        {duck_table}
+    from
+      {duck_table}
 
-      where
-        len(key_parts) >= {min_eligible_pathcount}
-    )
-
-    select distinct target_path from candidate_paths
+    where
+      key like '{path_to_monitor}%/%/_%';
   """
 
   target_paths = [result[0] for result in duck.sql(sql).fetchall()]
@@ -95,15 +93,30 @@ def main():
     'warehouse':  TABULAR_TARGET_WAREHOUSE
   }
 
+  logging.info(f"""
+    Starting batch bootstrapping 💪
+      - tabular uri: {TABULAR_CATALOG_URI}
+      - tabular target warehouse: {TABULAR_TARGET_WAREHOUSE}
+      - s3 bucket to monitor: {S3_BUCKET_TO_MONITOR}
+      - s3 path to monitor: {S3_PATH_TO_MONITOR}
+  """)
+
   catalog = load_catalog(**catalog_properties)
 
   targets = get_s3_targets_from_tabular(catalog, S3_PATH_TO_MONITOR)
 
+  if not targets:
+    logging.info('No targets to process. That was easy 💃')
+
   for target in targets:
     database, table = tabular.extract_database_and_table(target, S3_PATH_TO_MONITOR, is_dir=True)
+    logging.info(f"""
+      Processing target: {target}
+      Target database: {database}
+      Target table: {table}
+    """)
     tabular.create_file_loader_target_table(f's3://{target}', catalog, database, table)
-    print(target)
 
 
 if __name__ == '__main__':
-    main()
+  main()
