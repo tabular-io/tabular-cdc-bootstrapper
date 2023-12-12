@@ -49,15 +49,17 @@ class TestTabular:
         test_case = test_cases[key]
         expected  = test_case[-1]
         actual    = tabular.bootstrap_cdc_target(
-          test_case[0], 
-          self.S3_BUCKET_TO_MONITOR, 
-          self.catalog
+          s3_file_loader_target_path = test_case[0], 
+          s3_bucket_name = self.S3_BUCKET_TO_MONITOR, 
+          cdc_id_field = self.TABULAR_CDC_ID_FIELD,
+          cdc_timestamp_field = self.TABULAR_CDC_TIMESTAMP_FIELD,
+          catalog=self.catalog
         )
         assert actual == expected
       
       # test some junk
       with pytest.raises(ValueError):
-        tabular.bootstrap_cdc_target('lkdfj.jdsfskl', 'fdassdf', self.catalog)
+        tabular.bootstrap_cdc_target('lkdfj.jdsfskl', 'fdassdf', 'fdas', 'fdas', self.catalog)
 
     finally:
       try:
