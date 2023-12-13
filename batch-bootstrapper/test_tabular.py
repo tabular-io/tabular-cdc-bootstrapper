@@ -1,9 +1,7 @@
-from io import BytesIO
 import os
 
-import pyarrow as pa
-import pyarrow.parquet as pq
 from pyiceberg.catalog import load_catalog
+from pyiceberg.exceptions import NoSuchTableError
 import pytest
 
 import tabular
@@ -24,49 +22,52 @@ class TestTabular:
   catalog = load_catalog(**CATALOG_PROPERTIES)
 
 
-  def test_extract_database_and_table(self):
-    s3_key = 'cdc-bootstrap/alpha/gazebo/my-file.json'
+  def test_get_db_and_table_from_s3_path(self):
+    expected_db    = 'alpha'
+    expected_table = 'beta'
+    target         = f'cdc-bootstrap/{expected_db}/{expected_table}'
+    postfixes      = ['', '/'] # check that trailing '/'s are tolerated well
 
-    database, table = tabular.extract_database_and_table(s3_key)
-    assert database == 'cdc-bootstrap' and table == 'alpha'
-
-    database, table = tabular.extract_database_and_table(s3_key, '')
-    assert database == 'cdc-bootstrap' and table == 'alpha'
-
-    database, table = tabular.extract_database_and_table(s3_key, 'cdc-bootstrap')
-    assert database == 'alpha' and table == 'gazebo'
+    for postfix in postfixes:
+      actual_db, actual_table = tabular.get_db_and_table_from_s3_path(target + postfix)
+      assert expected_db == actual_db
+      assert expected_table == actual_table
     
     with pytest.raises(ValueError):
-      tabular.extract_database_and_table(s3_key, 'cdc-bootstrap/alpha')
+      tabular.get_db_and_table_from_s3_path('asdfasdfasdf')
 
   def test_bootstrap_cdc_target(self):
     target_db    = '_cdc_bootstrapper_ci'
     target_table = 'missing-table'
     test_cases   = {
-      'table_exists':     ('cdc-bootstrap/system/catalog_events/my-file.json', 'cdc-bootstrap', False),
-      'table_missing':    (f'cdc-bootstrap/{target_db}/{target_table}/my-file.json', 'cdc-bootstrap', True),
+      'table_exists':     ('cdc-bootstrap/system/catalog_events', False),
+      'table_missing':    (f'cdc-bootstrap/{target_db}/{target_table}', True),
     }
 
     try:
       for key in test_cases:
         test_case = test_cases[key]
-        expected  = test_case[2]
+        expected  = test_case[-1]
         actual    = tabular.bootstrap_cdc_target(
-          test_case[0], 
-          test_case[1], 
-          self.S3_BUCKET_TO_MONITOR, 
-          self.CATALOG_PROPERTIES
+          s3_file_loader_target_path = test_case[0], 
+          s3_bucket_name = self.S3_BUCKET_TO_MONITOR, 
+          cdc_id_field = self.TABULAR_CDC_ID_FIELD,
+          cdc_timestamp_field = self.TABULAR_CDC_TIMESTAMP_FIELD,
+          catalog=self.catalog
         )
         assert actual == expected
       
       # test some junk
       with pytest.raises(ValueError):
-        tabular.bootstrap_cdc_target('lkdfj.jdsfskl', 'fdassdf', 'dklfjasldkf', {})
+        tabular.bootstrap_cdc_target('lkdfj.jdsfskl', 'fdassdf', 'fdas', 'fdas', self.catalog)
 
     finally:
-      self.catalog.drop_table(f'{target_db}.{target_table}')
-      self.catalog.drop_namespace(target_db)
-
+      try:
+        self.catalog.drop_table(f'{target_db}.{target_table}')
+        self.catalog.drop_table(f'{target_db}.{target_table}__cdc_target')
+        self.catalog.drop_namespace(target_db)
+      except NoSuchTableError as nste:
+        pass # if the test fails before a table is created, this error can happen. ndb ⚡
 
   def test_create_file_loader_target_table(self):
     target_db_name = '_test_cdc_bootloader'

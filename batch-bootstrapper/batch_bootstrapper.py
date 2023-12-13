@@ -109,15 +109,23 @@ def main():
   if not targets:
     logging.info('No targets to process. That was easy 💃')
 
-  for target_path in targets:
-    database, table = tabular.extract_database_and_table(target_path, S3_PATH_TO_MONITOR, is_dir=True)
-    logging.info(f"""
-      Processing target: {target_path}
-      Target database: {database}
-      Target table: {table}
-    """)
-    target_uri = f's3://{S3_BUCKET_TO_MONITOR}/{target_path}'
-    tabular.create_file_loader_target_table(target_uri, catalog, database, table)
+  for target in targets:
+    try:
+      logging.info(f"""
+        Processing target: {target}
+      """)
+      tabular.bootstrap_cdc_target(
+        s3_file_loader_target_path=target, 
+        s3_bucket_name=S3_BUCKET_TO_MONITOR,
+        cdc_id_field=TABULAR_CDC_ID_FIELD,
+        cdc_timestamp_field=TABULAR_CDC_TIMESTAMP_FIELD,
+        catalog=catalog
+      )
+
+    except Exception as exc:
+      logging.error(f"""
+        Error processing target "{target}"! Will skip it for now 🫠. Actual error below:
+      """, exc_info=True)
 
 
 if __name__ == '__main__':
