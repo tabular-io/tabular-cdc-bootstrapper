@@ -214,4 +214,4 @@ def create_cdc_target_table(
 
   # now update the cdc source table with a cdc property
   with cdc_source_table.transaction() as txn:
-    txn.set_properties(**{'dependent-tables': f'`{target_table_identifier}`'}) # quote the identifiers to keep tabular happy
+    txn.set_properties(**{'dependent-tables': target_table_identifier})
