@@ -1,8 +1,10 @@
 import logging
 
-from pyiceberg.table import Table
 from pyiceberg.catalog import Catalog, load_catalog
 from pyiceberg.exceptions import NoSuchTableError, NamespaceAlreadyExistsError
+from pyiceberg.schema import Schema
+from pyiceberg.table import Table
+from pyiceberg.types import StringType, TimestampType, NestedField
 
 # Set up logging
 logger = logging.getLogger()
@@ -208,7 +210,10 @@ def create_cdc_target_table(
 
   catalog.create_table(
     identifier=target_table_identifier,
-    schema={},
+    schema= Schema(
+      NestedField(field_id=1, name=cdc_id_field, field_type=StringType(), required=True),
+      NestedField(field_id=2, name=cdc_timestamp_field, field_type=TimestampType(), required=True),
+    ),
     properties=table_props
   )
 
