@@ -15,7 +15,7 @@ TABULAR_TARGET_ORG_ID       = '6e332d7a-5325-4d1a-8b13-40181e4158d3'
 TABULAR_TARGET_WAREHOUSE    = 'enterprise_data_warehouse'
 TABULAR_TARGET_WAREHOUSE_ID = '097a7cbb-5095-40ed-bf80-dabafbacd09e'
 TABULAR_TARGET_DATABASE     = 'cdc_bootstrap'
-TABULAR_TARGET_DATABASE_ID  = 'f4ec7605-1350-4401-ab12-ca25b3135d50'
+TABULAR_TARGET_DATABASE_ID  = '63ca1d77-9aa3-4b90-8622-91334ef7cde1'
 
 TABULAR_CDC_ID_FIELD        = 'id'
 TABULAR_CDC_TIMESTAMP_FIELD = 'transact_seq'
@@ -69,6 +69,7 @@ def main():
         '**/LOAD*', # excludes initial load files
         catalog
       )
+      tabular.update_changelog_table(TABULAR_TARGET_DATABASE, changelog_table_name, cdc_mirror_table_name, catalog)
       
       # Create CDC table
       tabular.bootstrap_table(
@@ -84,8 +85,8 @@ def main():
         '**/*-*', # excludes DMS changelog files (hopefully)
         catalog
       )
+      tabular.update_mirror_table(TABULAR_TARGET_DATABASE, cdc_mirror_table_name, catalog)
       
-      # Configure table properties
 
     except Exception as exc:
       logging.error(f"""

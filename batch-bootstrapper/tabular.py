@@ -63,27 +63,16 @@ def get_cdc_target_table_properties(cdc_id_field: str, cdc_timestamp_field: str)
 
   return properties
 
-def get_file_loader_target_table_properties(file_loader_s3_uri: str) -> dict:
-  """
-  generates the appropriate tabular properties dictionary for an iceberg table 
-  requiring file loading and cdc processing. 
+def update_mirror_table(db_name, table_name, catalog):
+  table = catalog.load_table(f"{db_name}.{table_name}")
+  table_properties = get_cdc_target_table_properties('id', 'transact_seq')
+  with table.transaction() as transaction:
+    transaction.set_properties(**table_properties)
 
-  Args:
-    - file_loader_s3_uri (str): s3 uri that should be monitored for new files to load.
-        For example: s3://{bucket_name}/{monitoring_path}
-  """
-  if not file_loader_s3_uri or not file_loader_s3_uri.startswith('s3://'):
-    raise ValueError(f"""file_loader_s3_uri must exist and start with "s3://", but got "{file_loader_s3_uri}" """) 
-
-  # https://docs.tabular.io/tables#file-loader-properties
-  properties = {}
-  properties['fileloader.enabled']       = 'true'
-  properties['fileloader.path']          = file_loader_s3_uri
-  properties['fileloader.file-format']   = 'parquet'
-  properties['fileloader.write-mode']    = 'append'
-  properties['fileloader.evolve-schema'] = 'true'
-
-  return properties
+def update_changelog_table(db_name, table_name, mirror_table_name, catalog):
+  table = catalog.load_table(f"{db_name}.{table_name}")
+  with table.transaction() as transaction:
+    transaction.set_properties(**{'dependent-tables': f'{db_name}.{mirror_table_name}'})
 
 def bootstrap_table(
   tabular_credential: str,
