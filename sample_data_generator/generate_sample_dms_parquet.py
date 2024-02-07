@@ -20,7 +20,7 @@ for i in range(5):
         log.update({
             'table': 'test_table',
             'op': 'I',
-            'timestamp': datetime.now().isoformat(),  # Update timestamp
+            'ts': datetime.now().isoformat(),  # Update timestamp
         })
         logs.append(log)
 
@@ -35,7 +35,7 @@ for i in range(5):
       log.update({
           'table': 'test_table',
           'op': 'U',
-          'timestamp': datetime.now().isoformat(),  # Update timestamp
+          'ts': datetime.now().isoformat(),  # Update timestamp
       })
       logs.append(log)
 
@@ -50,7 +50,7 @@ for i in range(5):
           log.update({
               'table': 'test_table',
               'op': 'D',
-              'timestamp': datetime.now().isoformat()  # Ensure timestamp captured for delete operation
+              'ts': datetime.now().isoformat()  # Ensure timestamp captured for delete operation
           })
           logs.append(log)
 

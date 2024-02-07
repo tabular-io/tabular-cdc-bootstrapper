@@ -1,36 +1,40 @@
+import json
 import logging
 
-from pyiceberg.table import Table
+import requests
+
 from pyiceberg.catalog import Catalog, load_catalog
 from pyiceberg.exceptions import NoSuchTableError, NamespaceAlreadyExistsError
+from pyiceberg.table import Table
 
 # Set up logging
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-def get_db_and_table_from_s3_path(file_loader_s3_path: str):
-  """
-  Extract the database and table name from the s3 object path
+def get_tabular_token(base_url: str, tabular_credential: str) -> str:
+  """Gets a usable REST bearer token from a tabular credential
 
   Args:
-    - file_loader_s3_path: str - folder path that should be monitored by file loader. 
+      base_url (str): typically https://app.tabular.io, but varies with deployment tier
+      tabular_credential (str): member or service account credential created in Tabular
 
   Returns:
-    (database_name, table_name): tuple(str, str) - db name and table name strings from the given path
+      str: bearer token for API REST requests to Tabular
   """
-  logger.info(f"""
-    Extracting database and table name from:
-      - file_loader_s3_path: "{file_loader_s3_path}"
-  """)
-  
-  try:
-    database_name, table_name = file_loader_s3_path.strip('/').split('/')[-2:]
-    return (database_name, table_name)
+  client_id, client_secret = tabular_credential.split(':')
+  url = f"{base_url}/ws/v1/oauth/tokens"
+  data = {
+    'grant_type': 'client_credentials',
+    'client_id': client_id,
+    'client_secret': client_secret
+  }
+  headers = {'Content-Type': 'application/x-www-form-urlencoded'}
 
-  except IndexError:
-    raise ValueError(f"""
-      The file_loader_s3_path must have at least 2 directory levels, but got {file_loader_s3_path}
-    """)
+  resp = requests.post(url, headers=headers, data=data)
+  if resp.status_code != 200:
+    raise Exception(f"Failed to get token: {resp.content}")
+
+  return resp.json()['access_token']
 
 def get_cdc_target_table_properties(cdc_id_field: str, cdc_timestamp_field: str) -> dict:
   """
@@ -59,159 +63,81 @@ def get_cdc_target_table_properties(cdc_id_field: str, cdc_timestamp_field: str)
 
   return properties
 
-def get_file_loader_target_table_properties(file_loader_s3_uri: str) -> dict:
-  """
-  generates the appropriate tabular properties dictionary for an iceberg table requiring file loading
-  and cdc processing. 
+def update_mirror_table(db_name, table_name, catalog):
+  table = catalog.load_table(f"{db_name}.{table_name}")
+  table_properties = get_cdc_target_table_properties('id', 'transact_seq')
+  with table.transaction() as transaction:
+    transaction.set_properties(**table_properties)
 
-  Args:
-    - file_loader_s3_uri (str): s3 uri that should be monitored for new files to load.
-        For example: s3://{bucket_name}/{monitoring_path}
-  """
-  if not file_loader_s3_uri or not file_loader_s3_uri.startswith('s3://'):
-    raise ValueError(f"""file_loader_s3_uri must exist and start with "s3://", but got "{file_loader_s3_uri}" """) 
+def update_changelog_table(db_name, table_name, mirror_table_name, catalog):
+  table = catalog.load_table(f"{db_name}.{table_name}")
+  with table.transaction() as transaction:
+    transaction.set_properties(**{'dependent-tables': f'{db_name}.{mirror_table_name}'})
 
-  # https://docs.tabular.io/tables#file-loader-properties
-  properties = {}
-  properties['fileloader.enabled']       = 'true'
-  properties['fileloader.path']          = file_loader_s3_uri
-  properties['fileloader.file-format']   = 'parquet'
-  properties['fileloader.write-mode']    = 'append'
-  properties['fileloader.evolve-schema'] = 'true'
-
-  return properties
-
-def bootstrap_cdc_target(
-  s3_file_loader_target_path: str, 
-  s3_bucket_name: str,  
-  cdc_id_field: str,
-  cdc_timestamp_field: str,
-  catalog: Catalog
-  ) -> str:
-  """
-  Connects to an iceberg rest catalog with catalog_properties and bootstraps
-  a new table if one doesn't already exist
-
-  Args:
-    - s3_file_loader_target_path (str): The S3 object path to the file_loader 
-      directory path to process.
-    - s3_bucket_name (str): The name of the S3 bucket being monitored.
-    - cdc_id_field (str): The name of the field in the file loader target to use for cdc ids.
-    - cdc_timestamp_field (str): The name of the field in the file loader target to use for cdc timestamps .
-    - catalog (Catalog): Pyiceberg catalog to use for querying
-
-  Returns:
-    bool: True when a table is created, False when it already exists. Is this 
-      a good pattern? Who can say 🤷
-  """
-  target_db_name, target_table_name = get_db_and_table_from_s3_path(s3_file_loader_target_path)
-
+def bootstrap_table(
+  tabular_credential: str,
+  tabular_base_url: str,
+  org_id: str,
+  warehouse_id: str,
+  database_name: str,
+  database_id: str,
+  table_name: str,
+  s3_uri: str,
+  enable_fileloader: bool,
+  file_exclusion_filter: str,
+  catalog
+  ):
   # see if the table exists
   try:
-    target_table = catalog.load_table(f'{target_db_name}.{target_table_name}')
+    target_table = catalog.load_table(f'{database_name}.{table_name}')
     logger.info(f"""
-    Success - Existing table found in catalog...
-      s3_file_loader_target_path: {s3_file_loader_target_path}
-      target_db_name:             {target_db_name}
-      target_table_name:          {target_table_name}
+    Success(ish) - Existing table already found in catalog. Lets do nothing and move on...
+      database_name: {database_name}
+      table_name: {table_name}
     """)
 
-    return False # if the table exists, we're done here 😎
-
+    return # if the table exists, we're done here 😎
 
   except NoSuchTableError as nste:
     # get to boot strappin! 💪
     logger.info(f"""
       Creating table...
-        s3_file_loader_target_path: {s3_file_loader_target_path}
-        target_db_name:             {target_db_name}
-        target_table_name:          {target_table_name}
+        tabular_credential: nice try, not logging a secret pal
+        tabular_base_url: {tabular_base_url}
+        org_id: {org_id}
+        warehouse_id: {warehouse_id}
+        database_name: {database_name}
+        database_id: {database_id}
+        table_name: {table_name}
+        s3_uri: {s3_uri}
+        enable_fileloader: {enable_fileloader}
+        file_exclusion_filter: {file_exclusion_filter}
     """)
+    
+    auth_token = get_tabular_token(tabular_base_url, tabular_credential)
+    
+    url = f"{tabular_base_url}/v1/organizations/{org_id}/warehouses/{warehouse_id}/databases/{database_id}/tables"
 
-    s3_file_loader_target_uri = f's3://{s3_bucket_name}/{s3_file_loader_target_path}'
-    file_loader_target_table = create_file_loader_target_table(
-      s3_uri_file_loader_directory=s3_file_loader_target_uri, 
-      catalog=catalog, 
-      database=target_db_name, 
-      table=target_table_name
-    )
+    headers = {
+      'accept': '*/*',
+      'Authorization': f'Bearer {auth_token}',
+      'Content-Type': 'application/json'
+    }
+    
+    bucket, path = s3_uri[5:].split('/', 1)
+    mode = 'CREATE_AUTO_LOAD' if enable_fileloader else 'CREATE_LOAD'
 
-    logger.info(f"""
-      Successfully created file loader target table.
+    data = {
+      "tableName": table_name,
+      "bucket": bucket,
+      "prefixes": [path],
+      "mode": mode,
+      "fileLoaderConfig": {
+        "fileFormat": 'parquet',
+        "fileFilter": file_exclusion_filter
+      }
+    }
 
-      Now creating cdc target table:
-        - cdc_id_field        = "{cdc_id_field}"
-        - cdc_timestamp_field = "{cdc_timestamp_field}"
-    """)
-
-    create_cdc_target_table(
-      cdc_source_table=file_loader_target_table, 
-      cdc_id_field=cdc_id_field,
-      cdc_timestamp_field=cdc_timestamp_field,
-      catalog=catalog
-    )
-
-    return True # good work, team 💪
-
-def create_file_loader_target_table(
-  s3_uri_file_loader_directory: str, 
-  catalog: Catalog, 
-  database: str, 
-  table: str
-  ):
-  """
-  Creates an empty, columnless iceberg table with the given 
-  database and table name in the provided iceberg catalog.
-  """
-  loader_dir = s3_uri_file_loader_directory.strip('/')
-  if not loader_dir.startswith('s3://'):
-    raise ValueError(f'valid s3 uri must be provided for file loader target table creation. Got: {s3_uri_file_loader_directory}')
-  if loader_dir.endswith('.parquet'):
-    raise ValueError(f'Expecting an s3 folder path but got: {s3_uri_file_loader_directory}')
-
-  # Create the namespace if it doesn't exist
-  try:
-    catalog.create_namespace(database)
-  except NamespaceAlreadyExistsError as naee:
-    pass
-
-  # Create 'db.table'
-  table_props = get_file_loader_target_table_properties(loader_dir)
-  table_props['comment'] = f'created by cdc bootstrapper to monitor {s3_uri_file_loader_directory}'
-
-  return catalog.create_table(
-    identifier=f'{database}.{table}',
-    schema={},
-    properties=table_props
-  )
-
-def create_cdc_target_table(
-  cdc_source_table: Table, 
-  cdc_id_field: str, 
-  cdc_timestamp_field: str, 
-  catalog: Catalog
-  ):
-  """
-  Creates a cdc target iceberg table in the same namespace as the given 
-  source table. It will be named the same as the source table but 
-  with a _cdc_target postfix
-
-  Args:
-    - cdc_source_table: Table -- pyiceberg table to use as a cdc source
-    - catalog: Catalog -- pyiceberg catalog to create the cdc target in
-  """
-  # Create table
-  _, source_db, source_table = cdc_source_table.name()
-  target_table_identifier = f'{source_db}.{source_table}__cdc_target'
-  table_props = get_cdc_target_table_properties(cdc_id_field=cdc_id_field, cdc_timestamp_field=cdc_timestamp_field)
-  table_props['comment'] = f'created by cdc bootstrapper to perform cdc mirroring of {source_db}.{source_table}'
-
-  catalog.create_table(
-    identifier=target_table_identifier,
-    schema={},
-    properties=table_props
-  )
-
-  # now update the cdc source table with a cdc property
-  with cdc_source_table.transaction() as txn:
-    txn.set_properties(**{'dependent-tables': f'`{target_table_identifier}`'}) # quote the identifiers to keep tabular happy
+    response = requests.post(url, headers=headers, data=json.dumps(data))
+    if response.status_code != 200:
+      raise Exception(f"Failed to execute query: {response.content}")
